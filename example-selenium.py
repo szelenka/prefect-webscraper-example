@@ -154,8 +154,17 @@ def initialize_browser(
         path_to_chromedriver: T.Union[str, Parameter]
 ):
     options = webdriver.ChromeOptions()
+    # run in 'headless' mode
     options.add_argument('--headless')
+    # allow to run as 'root' user
     options.add_argument("--no-sandbox")
+    # disabling extensions
+    options.add_argument("--disable-extensions")
+    # applicable to windows os only
+    options.add_argument("--disable-gpu")
+    # overcome limited resource problems
+    options.add_argument("--disable-dev-shm-usage")
+    # specify download directory
     options.add_experimental_option(
         'prefs',
         {
