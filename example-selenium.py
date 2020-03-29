@@ -24,7 +24,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
 
-def click_on_xpath(driver: RemoteWebDriver, xpath: str, timeout=30):
+def click_on_xpath(driver: RemoteWebDriver, xpath: str, timeout: int = 60):
     time.sleep(random.uniform(0.5, 1.))
     try:
         resolved = WebDriverWait(driver, timeout=timeout).until(
@@ -41,29 +41,27 @@ def click_on_xpath(driver: RemoteWebDriver, xpath: str, timeout=30):
         raise ex
 
 
-def wait_on_visible(driver: RemoteWebDriver, xpath: str, timeout=30):
+def wait_on_visible(driver: RemoteWebDriver, xpath: str, timeout: int = 60):
     try:
         resolved = WebDriverWait(driver, timeout=timeout).until(
             EC.visibility_of_element_located((By.XPATH, xpath))
         )
         return resolved
     except (TimeoutException, ) as ex:
-        get_logger().error(f'Unable to locate element: {xpath} within {timeout} seconds')
+        get_logger().error(f'URL: {driver.current_url} unable to locate XPATH: {xpath} in timeout: {timeout}')
         raise ex
-    except (InvalidSelectorException, ) as ex:
-        raise ex
-    except (NoSuchElementException, ElementNotVisibleException, InvalidElementStateException, ) as ex:
-        raise ex
-
-
-def get_element_text(driver: RemoteWebDriver, xpath: str) -> str:
-    try:
-        return driver.find_element_by_xpath(xpath).text
     except (InvalidSelectorException, ) as ex:
         raise ex
     except (NoSuchElementException, ElementNotVisibleException, InvalidElementStateException, ) as ex:
         get_logger().error(f'URL: {driver.current_url} unable to locate XPATH: {xpath}')
         raise ex
+
+
+def get_element_text(driver: RemoteWebDriver, xpath: str, timeout: int = 60) -> T.Optional[str]:
+    try:
+        return wait_on_visible(driver=driver, xpath=xpath, timeout=timeout).text
+    except (NoSuchElementException, ElementNotVisibleException, InvalidElementStateException, ) as ex:
+        return None
 
 
 @task(
