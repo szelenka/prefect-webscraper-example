@@ -150,8 +150,7 @@ def insert_data(data: T.Dict[str, T.Any], gaming_platform: str, tbl: T.Union[sa.
     return
 
 
-@task
-def task_initialize_browser(
+def initialize_browser(
         path_to_chromedriver: T.Union[str, Parameter]
 ):
     options = webdriver.ChromeOptions()
@@ -172,53 +171,46 @@ def task_initialize_browser(
     return driver
 
 
-@task
-def task_close_driver(
-        driver: T.Union[RemoteWebDriver, Result]
-):
-    if driver:
-        driver.quit()
-
-
 @task(
-    max_retries=3,
-    retry_delay=datetime.timedelta(minutes=5),
-    cache_for=datetime.timedelta(minutes=10),
-    cache_validator=cache_validators.all_inputs
+    # max_retries=3,
+    # retry_delay=datetime.timedelta(minutes=5),
+    # cache_for=datetime.timedelta(minutes=10),
+    # cache_validator=cache_validators.all_inputs
 )
 def task_locate_links_on_home_page(
-        driver: T.Union[RemoteWebDriver, Result],
         url: T.Union[str, Parameter],
-        gaming_platform: T.Union[str, Parameter]
+        gaming_platform: T.Union[str, Parameter],
+        path_to_chromedriver: T.Union[str, Parameter]
 ) -> T.Union[T.List[str], Result]:
+    driver = initialize_browser(path_to_chromedriver=path_to_chromedriver)
     # download the HTML from the site
     driver.get(url=url)
 
-    # navigate to "Games"
+    get_logger().info('navigate to "Games"')
     resolved = click_on_xpath(
         driver=driver,
         xpath='//span[@class="primary_nav_text" and contains(string(), "Games")]'
     )
 
-    # navigate to selected gaming_platform
+    get_logger().info('navigate to selected gaming_platform')
     resolved = click_on_xpath(
         driver=driver,
         xpath=f'//div[@class="column platforms"]//label[@class="mc_nav_picks" and contains(string(), "{gaming_platform}")]'
     )
 
-    # navigate to selected gaming_platform Home page
+    get_logger().info('navigate to selected gaming_platform Home page')
     resolved = click_on_xpath(
         driver=driver,
         xpath=f'//div[@class="column subnav ajax"]//a[contains(string(), "{gaming_platform} Home")]'
     )
 
-    # navigate to 'see all' list of games
+    get_logger().info('navigate to "see all" list of games')
     resolved = click_on_xpath(
         driver=driver,
         xpath=f'//p[@class="see_all"]/a[contains(string(), "see all")]'
     )
 
-    # navigate to 'All Releases' list
+    get_logger().info('navigate to "All Releases" list')
     resolved = click_on_xpath(
         driver=driver,
         xpath='//li[contains(@class, "tab_available")]/a'
@@ -234,7 +226,7 @@ def task_locate_links_on_home_page(
 
         return _links
 
-    # get current page links
+    get_logger().info('get current page links')
     links = get_all_links(_driver=driver)
 
     # get links from other pages
@@ -247,9 +239,12 @@ def task_locate_links_on_home_page(
                 timeout=5
             )
             links += get_all_links(_driver=driver)
+            get_logger().info(f"running total of links: {len(links)}")
         except (TimeoutException, NoSuchElementException, ):
+            get_logger().info(f"finished iterating through all pages")
             break
 
+    driver.close()
     get_logger().info(f"Discovered {len(links)} links to follow")
     return links
 
@@ -278,15 +273,16 @@ def task_filter_links(
 
 
 @task(
-    max_retries=3,
-    retry_delay=datetime.timedelta(minutes=5),
-    cache_for=datetime.timedelta(minutes=10),
-    cache_validator=cache_validators.all_inputs
+    # max_retries=3,
+    # retry_delay=datetime.timedelta(minutes=5),
+    # cache_for=datetime.timedelta(minutes=10),
+    # cache_validator=cache_validators.all_inputs
 )
 def task_extract_data_from_game_page(
         url: T.Union[str, Parameter],
-        driver: T.Union[RemoteWebDriver, Result],
+        path_to_chromedriver: T.Union[str, Parameter]
 ) -> T.Union[T.Dict[str, T.Any], Result]:
+    driver = initialize_browser(path_to_chromedriver=path_to_chromedriver)
     driver.get(url=url)
     try:
         metascore = float(get_element_text(driver=driver, xpath='//div[contains(@class, "metascore_w")]/span'))
@@ -352,6 +348,8 @@ def task_extract_data_from_game_page(
     except ValueError as ex:
         release_date = None
 
+    driver.close()
+
     data = dict(
         metascore=metascore,
         crit_reviews=crit_reviews,
@@ -407,15 +405,12 @@ with Flow(
     _db_file = Parameter("db_file", default='game_reviews.sqlite', required=False)
 
     # specify function flow for DAG
-    _driver = task_initialize_browser(
-        path_to_chromedriver=_path_to_chromedriver
-    )
 
     # extract links of pages to parse
     links_from_home_page = task_locate_links_on_home_page(
-        driver=_driver,
         url=_home_page_url,
-        gaming_platform=_gaming_platform
+        gaming_platform=_gaming_platform,
+        path_to_chromedriver=_path_to_chromedriver
     )
 
     _db = create_db(
@@ -424,17 +419,14 @@ with Flow(
     _filtered_links = task_filter_links(
         gaming_platform=_gaming_platform,
         links=links_from_home_page,
-        tbl=_db
+        tbl=_db,
     )
 
     # parse data off the pages
     _raw_data = task_extract_data_from_game_page.map(
         url=_filtered_links,
-        driver=unmapped(_driver)
+        path_to_chromedriver=unmapped(_path_to_chromedriver)
     )
-    task_close_driver(
-        driver=_driver
-    ).set_upstream(_raw_data)
 
     # insert into SQLite table
     _final = insert_data.map(
