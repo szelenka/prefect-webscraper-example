@@ -156,6 +156,7 @@ def task_initialize_browser(
 ):
     options = webdriver.ChromeOptions()
     options.add_argument('--headless')
+    options.add_argument("--no-sandbox")
     options.add_experimental_option(
         'prefs',
         {
@@ -375,7 +376,8 @@ with Flow(
                 CronClock(
                     cron='0 0 * * *',
                     parameter_defaults=dict(
-                        url='http://www.insidethex.co.uk/'
+                        home_page='https://www.metacritic.com/',
+                        gaming_platform='Switch'
                     )
                 ),
             ]
@@ -385,7 +387,7 @@ with Flow(
             #  https://docs.prefect.io/cloud/recipes/configuring_storage.html
             registry_url='szelenka',
             # TODO: need to specify a base Docker image which has the chromedriver dependencies already installed
-            base_image='selenium/standalone-chrome',
+            base_image='szelenka/python-selenium-chromium:3.7.4',
             # TODO: 'pin' the exact versions you used on your development machine
             python_dependencies=[
                 'selenium==3.141.0',
