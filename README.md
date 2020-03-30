@@ -33,7 +33,7 @@ The example on Prefect's site leverages the `requests` library, along with `beau
 websites that don't involve a lot of JavaScript manipulation of the DOM.
 
 A working example of using BeautifulSoup to parse a website on a schedule in Prefect Cloud is found in:
-- [example-bs4.py](./example=bs4.py)
+- [example-bs4.py](./example-bs4.py)
 
 ### Selenium
 
@@ -63,7 +63,7 @@ TYPE|OBJECT|DESCRIPTION
 📁|[docker](./docker)|Non-source code related files used by the [Dockerfile](./Dockerfile) during the build process
 📄|[build_docker_base_image.sh](./build_docker_base_image.sh)|Dockerfiles to build a base image for the selenium chrome driver
 📄|[Dockerfile](./Dockerfile)|Dockerfiles to build a base image for the selenium chrome driver
-📄|[example-bs4.py](./example=bs4.py)|Example website scraper Prefect Flow ready for Prefect Cloud using BeautifulSoup
+📄|[example-bs4.py](./example-bs4.py)|Example website scraper Prefect Flow ready for Prefect Cloud using BeautifulSoup
 📄|[example-selenium.py](./example-selenium.py)|Example website scraper Prefect Flow ready for Prefect Cloud using Selenium
 📄|[README.md](README.md)|This file you're reading now
 📄|[requirements.txt](./requirements.txt)|Python packages required for local development of Prefect Flows in this repository
