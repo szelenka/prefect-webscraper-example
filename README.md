@@ -13,17 +13,41 @@ dedicated system.
 
 ## Installation
 
-You'll need a Python environment with the following packages installed:
+You'll need a Python environment with the following packages installed. 
 
+It's best practice to setup a unique environment for each project. You can accomplish this through
+Anaconda or pure Python:
+
+### Python Virtual Environment
+```bash
+pip install virtualenv
+python -m venv prefect-webscraper-example
+source activate prefect-webscraper-example/bin/activate
+```
+
+### Conda Virtual Environment
+
+```bash
+conda create -n prefect-webscraper-example python=3.7
+source activate prefect-webscraper-example
+```
+
+### Package installation
+To install the packages, you'll need to use PIP as not all the packages are on the Conda Channels:
 ```bash
 pip install -r requirements.txt
 ```
 
-IF you want to visualize the DAG, you'll need `graphviz` installed. This can be done with one command if you're using 
+### Visualization Note
+
+If you want to visualize the DAG, you'll need `graphviz` installed. This can be done with one command if you're using 
 conda:
 ```bash
 conda install graphviz
 ```
+
+If you want to use the pure Python approach, refer to the official documentation here:
+- https://graphviz.readthedocs.io/en/stable/manual.html
 
 ## Examples
 
