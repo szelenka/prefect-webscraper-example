@@ -4,7 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 from prefect import task, Flow, Parameter, unmapped
 from prefect.engine import cache_validators
-from prefect.engine.result_handlers import GCSResultHandler
+from prefect.engine.result_handlers import LocalResultHandler
 from prefect.environments.storage import Docker
 from prefect.schedules import Schedule
 from prefect.schedules.clocks import CronClock
@@ -80,10 +80,10 @@ def create_episode_list(base_url, main_html, bypass):
 
 
 @task(
-    max_retries=3,
-    retry_delay=datetime.timedelta(minutes=5),
-    cache_for=datetime.timedelta(minutes=10),
-    cache_validator=cache_validators.all_inputs,
+    # max_retries=3,
+    # retry_delay=datetime.timedelta(minutes=5),
+    # cache_for=datetime.timedelta(minutes=10),
+    # cache_validator=cache_validators.all_inputs,
     tags=["web"]
 )
 def retrieve_url(url):
@@ -146,9 +146,7 @@ with Flow(
         ),
         # TODO: specify how you want to handle results
         #  https://docs.prefect.io/core/concepts/results.html#results-and-result-handlers
-        result_handler=GCSResultHandler(
-            bucket='prefect_results'
-        )
+        result_handler=LocalResultHandler()
 ) as flow:
     _url = Parameter("url", default='http://www.insidethex.co.uk/')
     _bypass = Parameter("bypass", default=False, required=False)
@@ -193,6 +191,8 @@ if __name__ == '__main__':
     # execute the Flow manually, not on the schedule
     with raise_on_exception():
         if p.deploy:
+            # TODO: hack for https://github.com/PrefectHQ/prefect/issues/2165
+            flow.result_handler.dir = '/root/.prefect/results'
             flow.register(
                 # TODO: specify the project_name on Prefect Cloud you're authenticated to
                 project_name="Sample Project Name",

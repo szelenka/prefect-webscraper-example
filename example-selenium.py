@@ -12,7 +12,8 @@ from prefect.engine.result import Result
 from prefect.schedules import Schedule
 from prefect.schedules.clocks import CronClock
 from prefect.engine import cache_validators
-from prefect.engine.result_handlers import GCSResultHandler
+from prefect.environments import KubernetesJobEnvironment
+from prefect.engine.result_handlers import LocalResultHandler
 from prefect.environments.storage import Docker
 from prefect.utilities.logging import get_logger
 
@@ -183,7 +184,7 @@ def initialize_browser(
 @task(
     # max_retries=3,
     # retry_delay=datetime.timedelta(minutes=5),
-    # cache_for=datetime.timedelta(minutes=10),
+    # cache_for=datetime.timedelta(days=1),
     # cache_validator=cache_validators.all_inputs
 )
 def task_locate_links_on_home_page(
@@ -201,13 +202,13 @@ def task_locate_links_on_home_page(
         xpath='//span[@class="primary_nav_text" and contains(string(), "Games")]'
     )
 
-    get_logger().info('navigate to selected gaming_platform')
+    get_logger().info(f'navigate to "{gaming_platform}"')
     resolved = click_on_xpath(
         driver=driver,
         xpath=f'//div[@class="column platforms"]//label[@class="mc_nav_picks" and contains(string(), "{gaming_platform}")]'
     )
 
-    get_logger().info('navigate to selected gaming_platform Home page')
+    get_logger().info(f'navigate to "{gaming_platform} Home" page')
     resolved = click_on_xpath(
         driver=driver,
         xpath=f'//div[@class="column subnav ajax"]//a[contains(string(), "{gaming_platform} Home")]'
@@ -284,7 +285,7 @@ def task_filter_links(
 @task(
     # max_retries=3,
     # retry_delay=datetime.timedelta(minutes=5),
-    # cache_for=datetime.timedelta(minutes=10),
+    # cache_for=datetime.timedelta(days=1),
     # cache_validator=cache_validators.all_inputs
 )
 def task_extract_data_from_game_page(
@@ -389,6 +390,10 @@ with Flow(
                 ),
             ]
         ),
+        # TODO: specify the environment you want to execute the Flow in (from Prefect Cloud)
+        environment=KubernetesJobEnvironment(
+            job_spec_file='job_spec.yaml',
+        ),
         storage=Docker(
             # TODO: change to your docker registry:
             #  https://docs.prefect.io/cloud/recipes/configuring_storage.html
@@ -403,9 +408,7 @@ with Flow(
         ),
         # TODO: specify how you want to handle results
         #  https://docs.prefect.io/core/concepts/results.html#results-and-result-handlers
-        result_handler=GCSResultHandler(
-            bucket='prefect_results'
-        )
+        result_handler=LocalResultHandler()
 ) as flow:
     # specify the DAG input parameters
     _path_to_chromedriver = Parameter('path_to_chromedriver', default='/usr/bin/chromedriver')
@@ -465,13 +468,15 @@ if __name__ == '__main__':
     # execute the Flow manually, not on the schedule
     with raise_on_exception():
         if p.deploy:
+            # TODO: hack for https://github.com/PrefectHQ/prefect/issues/2165
+            flow.result_handler.dir = '/root/.prefect/results'
             flow.register(
                 # TODO: specify the project_name on Prefect Cloud you're authenticated to
-                project_name="Sample Project Name",
+                project_name="Cisco",
                 build=True,
                 # TODO: specify any labels for Agents
                 labels=[
-                    'sample-label'
+                    'lab'
                 ]
             )
         else:

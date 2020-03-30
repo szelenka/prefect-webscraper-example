@@ -1,0 +1,22 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: example-selenium-
+  labels:
+    identifier: ""
+spec:
+  template:
+    metadata:
+      labels:
+        identifier: ""
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: flow-container
+          resources:
+            requests:
+              cpu: 1000m
+              memory: 1Gi
+            limits:
+              cpu: 1000m
+              memory: 1Gi

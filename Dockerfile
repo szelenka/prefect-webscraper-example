@@ -36,8 +36,6 @@ RUN set -ex \
     bzip2 \
     ca-certificates \
     tzdata \
-    git \
-    build-essential \
     unzip \
     wget \
     jq \
@@ -119,3 +117,26 @@ ENV SCREEN_DEPTH 24
 ENV SCREEN_DPI 96
 ENV DISPLAY :99.0
 ENV START_XVFB true
+
+#============================
+# Install Prefect
+# ref: https://github.com/PrefectHQ/prefect/blob/master/Dockerfile
+#============================
+ARG PREFECT_VERSION
+RUN set -ex \
+  && echo ">>> Prefect Setup" \
+  && apt-get -yqq update \
+  && apt-get -yqq --no-install-recommends install \
+    git \
+    build-essential \
+  && pip install --upgrade pip \
+  && pip install git+https://github.com/PrefectHQ/prefect.git@${PREFECT_VERSION}#egg="prefect[kubernetes, google]" \
+  && mkdir -p /root/.prefect/flows /root/.prefect/results \
+  && apt-get autoremove -yqq --purge \
+  && apt-get clean \
+  && rm -rf \
+    /var/lib/apt/lists/* \
+    /var/tmp/* \
+    /usr/share/man \
+    /usr/share/doc \
+    /usr/share/doc-base
